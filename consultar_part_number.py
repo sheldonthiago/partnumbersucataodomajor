@@ -11,7 +11,7 @@ from google import genai
 # CONFIGURAÇÃO
 # ============================================
 
-GEMINI_API_KEY = "GEMINI_API_KEY"  # Replace with your actual API key
+GEMINI_API_KEY = "GEMINI_API_KEY"  # Substitua pela sua chave de API real
 mercado_livre_site = "MLB"  # Mercado Livre Brasil
 NUMERO_ANUNCIOS = 20  # Número de anúncios para listar
 
@@ -29,13 +29,13 @@ def consultar_part_number_20_anuncios(part_number):
 
     # 2. Usar Gemini Flash para gerar query de busca otimizada
     query_prompt = f"""
-    You are helping search for a product on Mercado Livre Brazil.
+    Você está ajudando a buscar um produto no Mercado Livre Brasil.
     Part number: {part_number}
 
-    Generate an optimized search query in Portuguese for Mercado Livre.
-    Include common variations of the part number and related terms.
+    Gere uma query de busca otimizada em português para o Mercado Livre.
+    Inclua variações comuns do part number e termos relacionados.
 
-    Return ONLY the search query in Portuguese, nothing else.
+    Retorne APENAS a query de busca em português, nada mais.
     """
 
     response = client.models.generate_content(
@@ -88,7 +88,7 @@ def consultar_part_number_20_anuncios(part_number):
 
         item_id = produto.get('id')
 
-        # Get detalhes completos do item
+        # Buscar detalhes completos do item
         item_url = f"https://api.mercadolibre.com/items/{item_id}"
         response_item = requests.get(item_url)
 
@@ -179,7 +179,7 @@ def consultar_part_number_20_anuncios(part_number):
 
 if __name__ == "__main__":
     # Part number para consultar (exemplo)
-    part_number = "OEM-123456"  # Replace with your actual part number
+    part_number = "OEM-123456"  # Substitua pelo part number desejado
 
     print(f"\n" + "="*80)
     print(f"=== CONSULTANDO PART NUMBER: {part_number} - LISTANDO 20 ANÚNCIOS ===")
