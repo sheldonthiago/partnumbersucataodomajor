@@ -4,6 +4,8 @@ Rodar no Claude
 Retorna para cada anúncio: título (mais caracteres), valor, dimensões, tamanho, largura, altura, comprimento, peso
 """
 
+import os
+
 import requests
 from google import genai
 
@@ -11,7 +13,7 @@ from google import genai
 # CONFIGURAÇÃO
 # ============================================
 
-GEMINI_API_KEY = "GEMINI_API_KEY"  # Substitua pela sua chave de API real
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")  # Defina a variável de ambiente GEMINI_API_KEY
 mercado_livre_site = "MLB"  # Mercado Livre Brasil
 NUMERO_ANUNCIOS = 20  # Número de anúncios para listar
 
@@ -19,13 +21,13 @@ NUMERO_ANUNCIOS = 20  # Número de anúncios para listar
 # FUNÇÃO PRINCIPAL
 # ============================================
 
-def consultar_part_number_20_anuncios(part_number):
+def consultar_part_number_20_anuncios(part_number, gemini_api_key=None):
     """
     Consulta um part number e lista 20 anúncios do Mercado Livre
     """
 
     # 1. Configurar cliente Gemini Flash
-    client = genai.Client(api_key=GEMINI_API_KEY)
+    client = genai.Client(api_key=gemini_api_key or GEMINI_API_KEY)
 
     # 2. Usar Gemini Flash para gerar query de busca otimizada
     query_prompt = f"""
@@ -185,7 +187,7 @@ if __name__ == "__main__":
     print(f"=== CONSULTANDO PART NUMBER: {part_number} - LISTANDO 20 ANÚNCIOS ===")
     print(f"="*80)
 
-    resultado = consultar_part_number_20_anuncios(part_number)
+    resultado = consultar_part_number_20_anuncios(part_number, gemini_api_key=GEMINI_API_KEY)
 
     if "error" not in resultado:
         print(f"\nQuery otimizada pelo Gemini Flash: {resultado['query_otimizada_gemini']}")

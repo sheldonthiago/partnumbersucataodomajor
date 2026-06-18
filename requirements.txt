@@ -1,2 +1,4 @@
 requests
 google-genai
+fastapi
+uvicorn[standard]
