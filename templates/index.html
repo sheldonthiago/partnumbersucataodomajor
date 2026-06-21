@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Consulta Part Number - Mercado Livre</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; background: #f4f4f4; }
+    .card { background: #fff; padding: 1.5rem; border-radius: 8px; max-width: 600px; margin: 0 auto; box-shadow: 0 1px 4px rgba(0,0,0,.15); }
+    label { display: block; margin-top: 1rem; font-weight: bold; }
+    input[type=text], input[type=file] { width: 100%; padding: .5rem; margin-top: .25rem; box-sizing: border-box; }
+    button { margin-top: 1.5rem; padding: .6rem 1.2rem; background: #3483fa; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; }
+    button:hover { background: #2968c8; }
+    .erro { color: #c0392b; margin-top: 1rem; }
+    .ou { text-align: center; margin: 1rem 0; color: #888; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Consulta Part Number - Mercado Livre</h2>
+    <form action="/consultar" method="post" enctype="multipart/form-data">
+      <label for="part_number">Part Number, título, marca ou modelo da peça</label>
+      <input type="text" id="part_number" name="part_number" placeholder="Ex: 52JL2019 ou capa lateral pulsar ns200">
+
+      <div class="ou">— ou —</div>
+
+      <label for="foto">Buscar a partir de uma foto da peça</label>
+      <input type="file" id="foto" name="foto" accept="image/*">
+
+      <button type="submit">Buscar 20 anúncios</button>
+    </form>
+    {% if erro %}<p class="erro">{{ erro }}</p>{% endif %}
+  </div>
+</body>
+</html>

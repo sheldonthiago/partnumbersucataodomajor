@@ -8,6 +8,7 @@ import os
 
 import requests
 from google import genai
+from google.genai import types
 
 # ============================================
 # CONFIGURAÇÃO
@@ -18,13 +19,102 @@ mercado_livre_site = "MLB"  # Mercado Livre Brasil
 NUMERO_ANUNCIOS = 20  # Número de anúncios para listar
 
 # ============================================
+# BUSCA POR FOTO
+# ============================================
+
+def extrair_part_number_da_foto(foto_bytes, mime_type="image/jpeg", gemini_api_key=None):
+    """
+    Usa o Gemini Flash (visão) para identificar o part number, marca e modelo
+    da peça a partir de uma foto.
+    """
+    client = genai.Client(api_key=gemini_api_key or GEMINI_API_KEY)
+
+    prompt = """
+    Você é um especialista em autopeças e motopeças. Observe a foto da peça
+    e identifique:
+    - O part number/código gravado na peça (se visível)
+    - A marca e modelo do veículo a que a peça provavelmente pertence
+    - O nome da peça
+
+    Retorne APENAS uma query de busca curta em português, otimizada para o
+    Mercado Livre, combinando essas informações (ex: "capa lateral direita
+    pulsar ns200 52jl2019"). Nada mais além da query.
+    """
+
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=[
+            types.Part.from_bytes(data=foto_bytes, mime_type=mime_type),
+            prompt,
+        ],
+    )
+
+    return response.text.strip()
+
+
+# ============================================
+# ESTIMATIVA DE DIMENSÕES (FALLBACK)
+# ============================================
+
+def estimar_dimensoes_gemini(titulo, gemini_api_key=None):
+    """
+    Quando o anúncio do Mercado Livre não informa dimensões/peso, pede ao
+    Gemini Flash uma estimativa realista com base no título do produto.
+    """
+    client = genai.Client(api_key=gemini_api_key or GEMINI_API_KEY)
+
+    prompt = f"""
+    Estime as dimensões de envio (embalagem) e o peso para o seguinte produto
+    de autopeça/motopeça, com base em padrões de mercado:
+
+    Título: {titulo}
+
+    Responda APENAS no formato exato abaixo, com números em cm e kg:
+    altura=X.X|largura=X.X|comprimento=X.X|peso=X.XX
+    """
+
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt,
+        )
+        texto = response.text.strip()
+        partes = dict(item.split("=") for item in texto.split("|"))
+        return {
+            "altura": partes.get("altura"),
+            "largura": partes.get("largura"),
+            "comprimento": partes.get("comprimento"),
+            "peso": partes.get("peso"),
+            "estimado": True,
+        }
+    except Exception:
+        return {
+            "altura": None,
+            "largura": None,
+            "comprimento": None,
+            "peso": None,
+            "estimado": True,
+        }
+
+
+# ============================================
 # FUNÇÃO PRINCIPAL
 # ============================================
 
-def consultar_part_number_20_anuncios(part_number, gemini_api_key=None):
+def consultar_part_number_20_anuncios(part_number=None, gemini_api_key=None, foto_bytes=None, foto_mime_type="image/jpeg"):
     """
-    Consulta um part number e lista 20 anúncios do Mercado Livre
+    Consulta um part number (texto ou identificado por foto) e lista 20
+    anúncios do Mercado Livre.
     """
+
+    # 0. Se uma foto foi enviada, usa o Gemini Vision para identificar a peça
+    if foto_bytes:
+        part_number = extrair_part_number_da_foto(
+            foto_bytes, mime_type=foto_mime_type, gemini_api_key=gemini_api_key
+        )
+
+    if not part_number:
+        return {"error": "Informe um part number, título da peça ou uma foto"}
 
     # 1. Configurar cliente Gemini Flash
     client = genai.Client(api_key=gemini_api_key or GEMINI_API_KEY)
@@ -32,9 +122,10 @@ def consultar_part_number_20_anuncios(part_number, gemini_api_key=None):
     # 2. Usar Gemini Flash para gerar query de busca otimizada
     query_prompt = f"""
     Você está ajudando a buscar um produto no Mercado Livre Brasil.
-    Part number: {part_number}
+    Part number ou descrição: {part_number}
 
-    Gere uma query de busca otimizada em português para o Mercado Livre.
+    Gere uma query de busca otimizada em português para o Mercado Livre,
+    incluindo marca e modelo da peça/veículo quando identificáveis.
     Inclua variações comuns do part number e termos relacionados.
 
     Retorne APENAS a query de busca em português, nada mais.
@@ -135,6 +226,15 @@ def consultar_part_number_20_anuncios(part_number, gemini_api_key=None):
             elif attr_name == 'WEIGHT' or 'peso' in attr_name.lower():
                 peso = valor_final
 
+        dimensoes_estimadas = False
+        if not any([largura, altura, comprimento, peso]):
+            estimativa = estimar_dimensoes_gemini(titulo, gemini_api_key=gemini_api_key)
+            altura = estimativa["altura"]
+            largura = estimativa["largura"]
+            comprimento = estimativa["comprimento"]
+            peso = estimativa["peso"]
+            dimensoes_estimadas = True
+
         resultado = {
             "anuncio_numero": anuncios_processados + 1,
             "titulo": titulo,
@@ -147,6 +247,7 @@ def consultar_part_number_20_anuncios(part_number, gemini_api_key=None):
             "altura": altura,
             "comprimento": comprimento,
             "peso": peso,
+            "dimensoes_estimadas": dimensoes_estimadas,
             "item_id": item_id,
             "url": f"https://www.mercadolivre.com.br/{item_id}",
             "thumbnail": produto.get('thumbnail', ''),
