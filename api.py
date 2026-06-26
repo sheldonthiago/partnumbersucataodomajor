@@ -25,7 +25,7 @@ templates = Jinja2Templates(directory="templates")
 
 @app.get("/", response_class=HTMLResponse)
 def formulario(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request, "index.html", {})
 
 
 @app.post("/consultar", response_class=HTMLResponse)
@@ -51,13 +51,13 @@ async def consultar_form(
 
     if "error" in resultado:
         return templates.TemplateResponse(
-            "index.html", {"request": request, "erro": resultado["error"]}
+            request, "index.html", {"erro": resultado["error"]}
         )
 
     return templates.TemplateResponse(
+        request,
         "resultados.html",
         {
-            "request": request,
             "part_number": resultado["part_number"],
             "query_otimizada": resultado["query_otimizada_gemini"],
             "anuncios": resultado["lista_20_anuncios"],
